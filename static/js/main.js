@@ -395,3 +395,54 @@ if (typeof pieLabels !== 'undefined') {
     }
   };
 }
+
+// ── Dashboard widget drag-and-drop ──
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.getElementById('dashboardWidgets');
+  if (!container || typeof Sortable === 'undefined') return;
+
+  const STORAGE_KEY = 'dashboard_widget_order';
+
+  function applyOrder(order) {
+    order.forEach(id => {
+      const el = container.querySelector(`[data-widget-id="${id}"]`);
+      if (el) container.appendChild(el);
+    });
+  }
+
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try { applyOrder(JSON.parse(saved)); } catch (_) {}
+  }
+
+  Sortable.create(container, {
+    animation: 180,
+    handle: '.widget-drag-handle',
+    ghostClass: 'widget-ghost',
+    chosenClass: 'widget-chosen',
+    onEnd() {
+      const order = [...container.querySelectorAll('[data-widget-id]')].map(el => el.dataset.widgetId);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(order));
+    }
+  });
+
+  container.querySelectorAll('.dashboard-widget').forEach(w => {
+    const handle = document.createElement('div');
+    handle.className = 'widget-drag-handle';
+    handle.innerHTML = '<i class="fa fa-grip-lines"></i>';
+    handle.title = 'Drag to reorder';
+    w.prepend(handle);
+  });
+});
+
+// ── Mobile search overlay ──
+function openMobileSearch() {
+  document.getElementById('mobileSearchOverlay')?.classList.add('open');
+  setTimeout(() => document.getElementById('mobileSearchInput')?.focus(), 50);
+}
+function closeMobileSearch() {
+  document.getElementById('mobileSearchOverlay')?.classList.remove('open');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('mobileSearchToggle')?.addEventListener('click', openMobileSearch);
+});

@@ -24,6 +24,7 @@ def create_app():
     from routes.salary import salary_bp
     from routes.goals import goals_bp
     from routes.report import report_bp
+    from routes.settings import settings_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -34,6 +35,7 @@ def create_app():
     app.register_blueprint(salary_bp)
     app.register_blueprint(goals_bp)
     app.register_blueprint(report_bp)
+    app.register_blueprint(settings_bp)
 
     from flask_wtf.csrf import CSRFProtect, generate_csrf
     CSRFProtect(app)

@@ -42,3 +42,23 @@ class BudgetForm(FlaskForm):
     limit_amount = DecimalField("Budget Limit", validators=[DataRequired(), NumberRange(min=0.01)], places=2)
     period = SelectField("Period", choices=[("daily","Daily"),("weekly","Weekly"),("monthly","Monthly")])
     category_id = SelectField("Category (optional)", coerce=int, validators=[Optional()])
+
+CURRENCY_CHOICES = [
+    ("₹","₹ INR"), ("$","$ USD"), ("€","€ EUR"), ("£","£ GBP"),
+    ("¥","¥ JPY"), ("₩","₩ KRW"), ("₦","₦ NGN"), ("R","R ZAR"),
+]
+
+class ProfileForm(FlaskForm):
+    username = StringField("Username", validators=[DataRequired(), Length(3, 80)])
+    email    = StringField("Email",    validators=[DataRequired(), Email()])
+    currency = SelectField("Currency", choices=CURRENCY_CHOICES)
+    default_category_id = SelectField("Default Category", coerce=int, validators=[Optional()])
+
+class ChangePasswordForm(FlaskForm):
+    current_password = PasswordField("Current Password", validators=[DataRequired()])
+    new_password     = PasswordField("New Password",     validators=[DataRequired(), Length(6)])
+    confirm_password = PasswordField("Confirm New Password", validators=[DataRequired(), EqualTo("new_password")])
+
+from flask_wtf.file import FileField, FileAllowed
+class AvatarForm(FlaskForm):
+    avatar = FileField("Profile Picture", validators=[FileAllowed(["jpg","jpeg","png","gif","webp"], "Images only"), DataRequired()])

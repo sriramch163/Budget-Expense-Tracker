@@ -14,6 +14,9 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    avatar = db.Column(db.String(255), nullable=True)
+    currency = db.Column(db.String(10), default="₹")
+    default_category_id = db.Column(db.Integer, db.ForeignKey("categories.id"), nullable=True)
 
     categories = db.relationship("Category", backref="user", lazy=True, cascade="all, delete-orphan")
     expenses   = db.relationship("Expense",  backref="user", lazy=True, cascade="all, delete-orphan")

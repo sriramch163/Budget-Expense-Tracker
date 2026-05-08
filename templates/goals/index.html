@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Savings Goals – BudgetTrack{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>🎯 Savings Goals</h1>
+    <p style="color:var(--text-muted);font-size:13px;margin-top:2px">Track your financial dreams</p>
+  </div>
+  <a href="{{ url_for('goals.create') }}" class="btn btn-primary"><i class="fa fa-plus"></i> New Goal</a>
+</div>
+
+<div class="goals-grid">
+  {% for g in goals %}
+  <div class="goal-card {{ 'goal-complete' if g.pct >= 100 }}">
+    <div class="goal-card-top">
+      <div class="goal-emoji">{{ g.emoji }}</div>
+      <div class="goal-info">
+        <div class="goal-name">{{ g.name }}</div>
+        {% if g.target_date %}
+        <div class="goal-date"><i class="fa fa-calendar" style="font-size:11px"></i> Target: {{ g.target_date.strftime('%d %b %Y') }}</div>
+        {% endif %}
+        {% if g.monthly_needed and g.pct < 100 %}
+        <div class="goal-monthly-calc"><i class="fa fa-piggy-bank"></i> Save ₹{{ "{:,.0f}".format(g.monthly_needed) }}/mo · {{ g.months_left }} month{{ 's' if g.months_left != 1 }}</div>
+        {% endif %}
+      </div>
+      <div class="goal-actions">
+        <a href="{{ url_for('goals.edit', id=g.id) }}" class="btn btn-sm btn-outline"><i class="fa fa-edit"></i></a>
+        <form method="POST" action="{{ url_for('goals.delete', id=g.id) }}" class="inline-form" onsubmit="return confirm('Delete this goal?')">
+          {{ csrf_token_input() }}
+          <button type="submit" class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+        </form>
+      </div>
+    </div>
+
+    <div class="goal-amounts">
+      <span class="goal-saved">₹{{ "{:,.0f}".format(g.saved_amount) }} saved</span>
+      <span class="goal-target">of ₹{{ "{:,.0f}".format(g.target_amount) }}</span>
+    </div>
+
+    <div class="goal-progress-track">
+      <div class="goal-progress-fill {{ 'complete' if g.pct >= 100 }}" style="width:{{ g.pct }}%"></div>
+    </div>
+    <div class="goal-pct-row">
+      <span class="goal-pct {{ 'complete' if g.pct >= 100 }}">{{ g.pct }}% {{ '🎉' if g.pct >= 100 else '' }}</span>
+      {% if g.pct < 100 %}
+      <span class="goal-remaining">₹{{ "{:,.0f}".format(g.remaining) }} to go</span>
+      {% else %}
+      <span class="goal-remaining" style="color:var(--success);font-weight:700">Goal Achieved! 🏆</span>
+      {% endif %}
+    </div>
+
+    {% if g.pct < 100 %}
+    <form method="POST" action="{{ url_for('goals.add_savings', id=g.id) }}" class="goal-add-form">
+      {{ csrf_token_input() }}
+      <div style="position:relative;flex:1">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-weight:700;color:var(--success)">₹</span>
+        <input type="number" name="amount" placeholder="Add savings..." step="0.01" min="1"
+               class="form-control" style="padding-left:26px" required/>
+      </div>
+      <button type="submit" class="btn btn-success btn-sm"><i class="fa fa-plus"></i> Add</button>
+    </form>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty-state-full" style="grid-column:1/-1">
+    <span style="font-size:48px">🎯</span>
+    <strong>No savings goals yet</strong>
+    <p style="color:var(--text-muted);font-size:13px">Set a goal and start saving towards it!</p>
+    <a href="{{ url_for('goals.create') }}" class="btn btn-primary"><i class="fa fa-plus"></i> Create First Goal</a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

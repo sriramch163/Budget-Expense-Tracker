@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Budgets – BudgetTrack{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Budget Limits</h1>
+  <a href="{{ url_for('budgets.create') }}" class="btn btn-primary"><i class="fa fa-plus"></i> Set Budget</a>
+</div>
+<div class="card">
+  <div class="table-responsive">
+  <table class="table">
+    <thead><tr><th>Category</th><th>Period</th><th>Limit</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for b in budgets %}
+      <tr>
+        <td>{{ b.category.name if b.category else 'Overall' }}</td>
+        <td><span class="badge badge-{{ b.period }}">{{ b.period|capitalize }}</span></td>
+        <td class="amount">₹{{ "%.2f"|format(b.limit_amount) }}</td>
+        <td class="actions">
+          <a href="{{ url_for('budgets.edit', id=b.id) }}" class="btn btn-sm btn-outline"><i class="fa fa-edit"></i></a>
+          <form method="POST" action="{{ url_for('budgets.delete', id=b.id) }}" class="inline-form" onsubmit="return confirm('Remove budget?')">
+            {{ csrf_token_input() }}
+            <button type="submit" class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="empty-state">No budgets set.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

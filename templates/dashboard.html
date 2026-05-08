@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – BudgetTrack{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1>Dashboard</h1>
+    <p class="page-sub">Welcome back, {{ current_user.username }} 👋</p>
+  </div>
+  <div class="header-actions">
+    <form method="GET" class="month-filter-form">
+      <input type="hidden" name="chart_period" value="{{ chart_period }}"/>
+      <select name="month" class="form-control-sm" onchange="this.form.submit()">
+        {% for num, name in months %}
+        <option value="{{ num }}" {{ 'selected' if num == sel_month }}>{{ name }}</option>
+        {% endfor %}
+      </select>
+      <select name="year" class="form-control-sm" onchange="this.form.submit()">
+        {% for y in range(today.year, today.year - 4, -1) %}
+        <option value="{{ y }}" {{ 'selected' if y == sel_year }}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    <a href="{{ url_for('expenses.create') }}" class="btn btn-primary btn-hide-xs"><i class="fa fa-plus"></i> Add Expense</a>
+  </div>
+</div>
+
+<!-- Budget alerts -->
+{% if alerts %}
+<div class="alerts-section">
+  {% for a in alerts %}
+  <div class="budget-alert {{ 'critical' if a.pct >= 100 else 'warning' }}">
+    <i class="fa fa-{{ 'exclamation-triangle' if a.pct >= 100 else 'bell' }}"></i>
+    <div><strong>{{ a.label }}</strong> ({{ a.period|capitalize }}) — ₹{{ "%.0f"|format(a.spent) }} of ₹{{ "%.0f"|format(a.limit) }} used</div>
+    <div class="alert-progress"><div class="alert-progress-bar" style="width:{{ [a.pct,100]|min }}%"></div></div>
+    <strong class="alert-pct">{{ a.pct }}%</strong>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Smart Insights -->
+{% if insights %}
+<div class="insights-section">
+  <div class="insights-header"><i class="fa fa-lightbulb"></i> Smart Insights</div>
+  <div class="insights-list">
+    {% for ins in insights %}
+    <div class="insight-item insight-{{ ins.type }}">
+      <span class="insight-emoji">{{ ins.emoji }}</span>
+      <span>{{ ins.text|safe }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Balance hero -->
+<div class="balance-hero">
+  <div class="balance-hero-main">
+    <div class="balance-hero-label">💳 Available Balance</div>
+    <div class="balance-hero-value {{ 'balance-negative' if balance < 0 }}">₹{{ "{:,.2f}".format(balance) }}</div>
+    <div class="balance-hero-sub">Total Income − Total Expenses</div>
+  </div>
+  <div class="balance-hero-stats">
+    <div class="balance-stat income">
+      <span class="balance-stat-emoji">📥</span>
+      <div>
+        <div class="balance-stat-label">Total Income</div>
+        <div class="balance-stat-value">₹{{ "{:,.0f}".format(total_income) }}</div>
+      </div>
+    </div>
+    <div class="balance-divider"></div>
+    <div class="balance-stat expense">
+      <span class="balance-stat-emoji">📤</span>
+      <div>
+        <div class="balance-stat-label">Total Spent</div>
+        <div class="balance-stat-value">₹{{ "{:,.0f}".format(total_expenses_all) }}</div>
+      </div>
+    </div>
+    <div class="balance-divider"></div>
+    <div class="balance-stat month-income">
+      <span class="balance-stat-emoji">📅</span>
+      <div>
+        <div class="balance-stat-label">{{ months[sel_month-1][1] }} Income</div>
+        <div class="balance-stat-value">₹{{ "{:,.0f}".format(income_this_month) }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stat cards -->
+<div class="stats-grid">
+  <div class="stat-card daily">
+    <div class="stat-icon"><i class="fa fa-sun"></i></div>
+    <div class="stat-info">
+      <span class="stat-label">Today</span>
+      <span class="stat-value">₹{{ "%.0f"|format(totals.daily) }}</span>
+      <span class="stat-sub">Daily spending</span>
+    </div>
+  </div>
+  <div class="stat-card weekly">
+    <div class="stat-icon"><i class="fa fa-calendar-week"></i></div>
+    <div class="stat-info">
+      <span class="stat-label">This Week</span>
+      <span class="stat-value">₹{{ "%.0f"|format(totals.weekly) }}</span>
+      <span class="stat-sub">Mon – Sun</span>
+    </div>
+  </div>
+  <div class="stat-card monthly">
+    <div class="stat-icon"><i class="fa fa-calendar-alt"></i></div>
+    <div class="stat-info">
+      <span class="stat-label">{{ months[sel_month-1][1] }} {{ sel_year }}</span>
+      <span class="stat-value">₹{{ "%.0f"|format(totals.monthly) }}</span>
+      <span class="stat-sub">{% if income_this_month > 0 %}{{ "%.0f"|format(totals.monthly / income_this_month * 100) }}% of income{% else %}Monthly spending{% endif %}</span>
+    </div>
+  </div>
+</div>
+
+<!-- Charts row 1 -->
+<div class="charts-grid">
+  <div class="chart-card">
+    <div class="chart-card-header">
+      <h3><i class="fa fa-chart-pie" style="color:var(--primary)"></i> By Category</h3>
+      <div class="period-pills">
+        <a href="{{ url_for('dashboard.index', chart_period='daily',   month=sel_month, year=sel_year) }}" class="period-pill {{ 'active' if chart_period=='daily' }}">Day</a>
+        <a href="{{ url_for('dashboard.index', chart_period='weekly',  month=sel_month, year=sel_year) }}" class="period-pill {{ 'active' if chart_period=='weekly' }}">Week</a>
+        <a href="{{ url_for('dashboard.index', chart_period='monthly', month=sel_month, year=sel_year) }}" class="period-pill {{ 'active' if chart_period=='monthly' }}">Month</a>
+      </div>
+    </div>
+    <div class="chart-container">
+      {% if chart_values %}<canvas id="pieChart"
+        data-category-ids="{{ chart_category_ids | tojson | e }}"
+        data-date-from="{{ chart_start }}"
+        data-date-to="{{ chart_end }}"></canvas>
+      {% else %}<div class="empty-state-full" style="padding:20px"><i class="fa fa-chart-pie" style="font-size:32px;opacity:.2"></i><span>No data</span></div>{% endif %}
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-card-header">
+      <h3><i class="fa fa-chart-line" style="color:var(--success)"></i> Daily — {{ months[sel_month-1][1] }}</h3>
+    </div>
+    <div class="chart-container">
+      {% if line_values|sum > 0 %}<canvas id="lineChart"></canvas>
+      {% else %}<div class="empty-state-full" style="padding:20px"><i class="fa fa-chart-line" style="font-size:32px;opacity:.2"></i><span>No data</span></div>{% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Charts row 2: bar -->
+<div class="chart-card" style="margin-bottom:24px">
+  <div class="chart-card-header">
+    <h3><i class="fa fa-chart-bar" style="color:var(--primary)"></i> Income vs Expenses — 6 Months</h3>
+    <div class="legend-row">
+      <span class="legend-dot" style="background:var(--success)"></span><span>Income</span>
+      <span class="legend-dot" style="background:var(--danger)"></span><span>Expenses</span>
+    </div>
+  </div>
+  <div class="chart-container" style="height:240px"><canvas id="barChart"></canvas></div>
+</div>
+
+<!-- Savings Goals mini -->
+{% if goals %}
+<div class="card" style="margin-bottom:24px">
+  <div class="card-header">
+    <h3><i class="fa fa-bullseye" style="color:var(--primary)"></i> Savings Goals</h3>
+    <a href="{{ url_for('goals.index') }}" class="btn btn-sm btn-outline">View All</a>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:14px">
+    {% for g in goals %}
+    <div class="goal-mini">
+      <div class="goal-mini-top">
+        <span class="goal-mini-emoji">{{ g.emoji }}</span>
+        <span class="goal-mini-name">{{ g.name }}</span>
+        <span class="goal-mini-pct {{ 'complete' if g.pct >= 100 }}">{{ g.pct }}%</span>
+        <span class="goal-mini-amounts">₹{{ "{:,.0f}".format(g.saved_amount) }} / ₹{{ "{:,.0f}".format(g.target_amount) }}</span>
+      </div>
+      <div class="goal-progress-track" style="margin-top:6px">
+        <div class="goal-progress-fill {{ 'complete' if g.pct >= 100 }}" style="width:{{ g.pct }}%"></div>
+      </div>
+      {% if g.monthly_needed and g.pct < 100 %}
+      <div style="font-size:11px;color:var(--primary);margin-top:4px">💡 Save ₹{{ "{:,.0f}".format(g.monthly_needed) }}/mo for {{ g.months_left }} month{{ 's' if g.months_left != 1 }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Recent expenses -->
+<div class="card">
+  <div class="card-header">
+    <h3><i class="fa fa-clock" style="color:var(--primary)"></i> Recent Expenses</h3>
+    <a href="{{ url_for('expenses.index') }}" class="btn btn-sm btn-outline">View All</a>
+  </div>
+  <div class="table-responsive" style="overflow-x:auto">
+    <table class="table">
+      <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th></tr></thead>
+      <tbody>
+        {% for e in recent %}
+        <tr>
+          <td class="text-muted nowrap">{{ e.date.strftime('%d %b %Y') }}</td>
+          <td>{{ e.description }}{% if e.is_recurring %}<span class="badge badge-info ml-1"><i class="fa fa-sync-alt"></i></span>{% endif %}</td>
+          <td><span class="category-chip" style="background:{{ e.category.color }}18;color:{{ e.category.color }}"><i class="fa fa-{{ e.category.icon }}"></i> {{ e.category.name }}</span></td>
+          <td class="amount">₹{{ "%.2f"|format(e.amount) }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="empty-state"><div style="font-size:28px;margin-bottom:8px">🧾</div>No expenses yet. <a href="{{ url_for('expenses.create') }}">Add one</a>.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const pieLabels    = {{ chart_labels        | tojson }};
+const pieValues    = {{ chart_values        | tojson }};
+const pieColors    = {{ chart_colors        | tojson }};
+const pieCatIds    = {{ chart_category_ids  | tojson }};
+const trendLabels  = {{ trend_labels   | tojson }};
+const trendExpenses= {{ trend_expenses | tojson }};
+const trendIncome  = {{ trend_income   | tojson }};
+const lineLabels   = {{ line_labels    | tojson }};
+const lineValues   = {{ line_values    | tojson }};
+</script>
+{% endblock %}

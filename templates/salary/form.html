@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} – BudgetTrack{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>{{ title }}</h1>
+  <a href="{{ url_for('salary.index') }}" class="btn btn-outline"><i class="fa fa-arrow-left"></i> Back</a>
+</div>
+<div class="card form-card">
+  <form method="POST" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="form-row">
+      <div class="form-group">
+        {{ form.amount.label }}
+        <div style="position:relative">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-weight:700;color:var(--success);font-size:15px">₹</span>
+          {{ form.amount(class="form-control", placeholder="0.00", style="padding-left:28px") }}
+        </div>
+        {% for e in form.amount.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+      </div>
+      <div class="form-group">
+        {{ form.date.label }}
+        {{ form.date(class="form-control") }}
+        {% for e in form.date.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+      </div>
+    </div>
+
+    <!-- Source quick-pick -->
+    <div class="form-group">
+      {{ form.source.label }}
+      <div class="source-picker">
+        {% for src, emoji in [('Salary','💼'),('Freelance','🚀'),('Bonus','🥳'),('Business','📈'),('Gift','🎁'),('Other','💸')] %}
+        <div class="source-option" data-value="{{ src }}" onclick="pickSource('{{ src }}', this)">
+          <span style="font-size:22px">{{ emoji }}</span>
+          <span>{{ src }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {{ form.source(class="form-control", id="source-input", placeholder="Or type custom source...") }}
+      {% for e in form.source.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+    </div>
+
+    <div class="form-group">
+      {{ form.note.label }}
+      {{ form.note(class="form-control", placeholder="e.g. April salary, Project X payment...") }}
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-success"><i class="fa fa-plus-circle"></i> Credit Income</button>
+      <a href="{{ url_for('salary.index') }}" class="btn btn-outline">Cancel</a>
+    </div>
+  </form>
+</div>
+<script>
+function pickSource(val, el) {
+  document.querySelectorAll('.source-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('source-input').value = val;
+}
+// Pre-select if editing
+const cur = document.getElementById('source-input').value;
+if (cur) {
+  document.querySelectorAll('.source-option').forEach(o => {
+    if (o.dataset.value === cur) o.classList.add('selected');
+  });
+}
+</script>
+{% endblock %}

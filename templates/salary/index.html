@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Income – BudgetTrack{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>💰 Income / Salary</h1>
+    <p style="color:var(--text-muted);font-size:13px;margin-top:2px">Track all your income sources</p>
+  </div>
+  <a href="{{ url_for('salary.create') }}" class="btn btn-primary"><i class="fa fa-plus"></i> Add Income</a>
+</div>
+
+<!-- Total income banner -->
+<div class="salary-banner">
+  <div class="salary-banner-left">
+    <div class="salary-banner-icon">💳</div>
+    <div>
+      <div class="salary-banner-label">Total Income Credited</div>
+      <div class="salary-banner-value">₹{{ "{:,.2f}".format(total) }}</div>
+    </div>
+  </div>
+  <div class="salary-banner-right">
+    <span style="font-size:28px">🏦</span>
+    <span style="font-size:13px;color:rgba(255,255,255,.75)">All time earnings</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+  <table class="table">
+    <thead>
+      <tr><th>Date</th><th>Source</th><th>Note</th><th>Amount</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for e in entries %}
+      <tr>
+        <td style="color:var(--text-muted);font-size:13px;white-space:nowrap">{{ e.date.strftime('%d %b %Y') }}</td>
+        <td>
+          <span class="source-chip">
+            {% if 'salary' in e.source.lower() %}💼
+            {% elif 'freelance' in e.source.lower() %}🚀
+            {% elif 'bonus' in e.source.lower() %}🥳
+            {% elif 'business' in e.source.lower() %}📈
+            {% elif 'gift' in e.source.lower() %}🎁
+            {% else %}💸{% endif %}
+            {{ e.source }}
+          </span>
+        </td>
+        <td style="color:var(--text-muted);font-size:13px">{{ e.note or '—' }}</td>
+        <td class="amount income-amount">₹{{ "{:,.2f}".format(e.amount) }}</td>
+        <td class="actions">
+          <a href="{{ url_for('salary.edit', id=e.id) }}" class="btn btn-sm btn-outline"><i class="fa fa-edit"></i></a>
+          <form method="POST" action="{{ url_for('salary.delete', id=e.id) }}" class="inline-form"
+                onsubmit="return confirm('Remove this income entry?')">
+            {{ csrf_token_input() }}
+            <button type="submit" class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5" class="empty-state">
+          <div style="font-size:36px;margin-bottom:8px">💸</div>
+          No income entries yet. <a href="{{ url_for('salary.create') }}">Add your first salary</a>.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

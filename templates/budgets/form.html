@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} – BudgetTrack{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>{{ title }}</h1>
+  <a href="{{ url_for('budgets.index') }}" class="btn btn-outline"><i class="fa fa-arrow-left"></i> Back</a>
+</div>
+<div class="card form-card">
+  <form method="POST" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="form-group">
+      {{ form.category_id.label }}
+      {{ form.category_id(class="form-control") }}
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        {{ form.period.label }}
+        {{ form.period(class="form-control") }}
+      </div>
+      <div class="form-group">
+        {{ form.limit_amount.label }}
+        {{ form.limit_amount(class="form-control", placeholder="0.00") }}
+        {% for e in form.limit_amount.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save Budget</button>
+      <a href="{{ url_for('budgets.index') }}" class="btn btn-outline">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

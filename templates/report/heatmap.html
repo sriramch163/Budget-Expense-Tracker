@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}Spending Heatmap — {{ sel_year }}{% endblock %}
+
+{% block content %}
+<style>
+.heatmap-wrap { overflow-x: auto; padding-bottom: 8px; }
+.heatmap-grid {
+  display: flex; gap: 3px; align-items: flex-start;
+  font-size: 11px; width: max-content;
+}
+.heatmap-labels-col {
+  display: flex; flex-direction: column; gap: 3px;
+  padding-top: 22px; margin-right: 4px;
+}
+.heatmap-day-label {
+  height: 13px; line-height: 13px; color: var(--text-muted);
+  font-size: 10px; font-weight: 600; width: 22px; text-align: right;
+}
+.heatmap-col { display: flex; flex-direction: column; gap: 3px; }
+.heatmap-month-label {
+  height: 18px; line-height: 18px; font-size: 10px;
+  font-weight: 700; color: var(--text-muted); white-space: nowrap;
+  overflow: visible; min-width: 13px;
+}
+.heatmap-cell {
+  width: 13px; height: 13px; border-radius: 2px;
+  cursor: pointer; transition: transform .1s, box-shadow .1s;
+  position: relative;
+}
+.heatmap-cell:hover { transform: scale(1.4); box-shadow: 0 2px 8px rgba(0,0,0,.25); z-index: 10; }
+.heatmap-cell.outside { background: transparent !important; cursor: default; }
+.heatmap-cell.outside:hover { transform: none; box-shadow: none; }
+
+.heatmap-legend {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--text-muted); margin-top: 12px;
+}
+.legend-cell { width: 13px; height: 13px; border-radius: 2px; }
+
+/* Tooltip */
+#hm-tooltip {
+  position: fixed; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 12px; font-size: 12px; pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,.15); z-index: 9999; display: none;
+  max-width: 180px;
+}
+#hm-tooltip .tt-date { font-weight: 700; margin-bottom: 2px; }
+#hm-tooltip .tt-amount { color: var(--primary); font-weight: 800; font-size: 14px; }
+#hm-tooltip .tt-none { color: var(--text-muted); }
+
+.heatmap-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;
+}
+.hm-stat {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow);
+}
+.hm-stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--text-muted); margin-bottom: 4px; }
+.hm-stat-value { font-size: 20px; font-weight: 800; color: var(--primary); }
+
+@media (max-width: 700px) {
+  .heatmap-stats { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .heatmap-stats { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .hm-stat-value { font-size: 16px; }
+  .heatmap-cell { width: 11px; height: 11px; }
+  .legend-cell { width: 11px; height: 11px; }
+}
+</style>
+
+<div class="page-header">
+  <h1><i class="fa fa-calendar-week" style="color:var(--primary)"></i> Spending Heatmap</h1>
+  <div class="header-actions">
+    <form method="GET" style="display:flex;gap:8px;align-items:center">
+      <select name="year" class="form-control-sm">
+        {% for y in years %}
+          <option value="{{ y }}" {{ 'selected' if y == sel_year }}>{{ y }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-search"></i> Go</button>
+    </form>
+  </div>
+</div>
+
+<!-- Stats row -->
+{% set total_spend = spend_map.values()|sum %}
+{% set active_days = spend_map|length %}
+<div class="heatmap-stats">
+  <div class="hm-stat">
+    <div class="hm-stat-label">Total Spent</div>
+    <div class="hm-stat-value">₹{{ "%.0f"|format(total_spend) }}</div>
+  </div>
+  <div class="hm-stat">
+    <div class="hm-stat-label">Active Days</div>
+    <div class="hm-stat-value">{{ active_days }}</div>
+  </div>
+  <div class="hm-stat">
+    <div class="hm-stat-label">Daily Avg</div>
+    <div class="hm-stat-value">₹{{ "%.0f"|format(total_spend / active_days) if active_days else "0" }}</div>
+  </div>
+  <div class="hm-stat">
+    <div class="hm-stat-label">Peak Day</div>
+    <div class="hm-stat-value">₹{{ "%.0f"|format(max_spend) }}</div>
+  </div>
+</div>
+
+<div class="card" style="padding:20px 24px">
+  <div class="heatmap-wrap">
+    <div class="heatmap-grid">
+      <!-- Day labels -->
+      <div class="heatmap-labels-col">
+        {% for label in ['Mon','','Wed','','Fri','','Sun'] %}
+          <div class="heatmap-day-label">{{ label }}</div>
+        {% endfor %}
+      </div>
+
+      <!-- Week columns -->
+      {% set month_labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] %}
+      {% set prev_month = namespace(val=-1) %}
+      {% for week in weeks %}
+        <div class="heatmap-col">
+          {# Month label: show if first day of week is in a new month #}
+          {% set first_in_year = week|selectattr('month','ne',0)|list %}
+          {% if first_in_year and first_in_year[0].month != prev_month.val %}
+            {% set prev_month.val = first_in_year[0].month %}
+            <div class="heatmap-month-label">{{ month_labels[first_in_year[0].month - 1] }}</div>
+          {% else %}
+            <div class="heatmap-month-label"></div>
+          {% endif %}
+
+          {% for day in week %}
+            {% set ds = day.strftime('%Y-%m-%d') %}
+            {% set amt = spend_map.get(ds, 0) %}
+            {% set in_year = (day >= y_start and day <= y_end) %}
+            {% if in_year %}
+              {% if amt > 0 %}
+                {% set ratio = amt / max_spend %}
+                {# green→yellow→red gradient via inline hsl #}
+                {% set hue = ((1 - ratio) * 120)|int %}
+                {% set sat = 70 %}
+                {% set lit = 40 %}
+                <div class="heatmap-cell"
+                     style="background:hsl({{ hue }},{{ sat }}%,{{ lit }}%)"
+                     data-date="{{ ds }}" data-amt="{{ amt }}"></div>
+              {% else %}
+                <div class="heatmap-cell"
+                     style="background:var(--border)"
+                     data-date="{{ ds }}" data-amt="0"></div>
+              {% endif %}
+            {% else %}
+              <div class="heatmap-cell outside"></div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="heatmap-legend">
+    <span>Less</span>
+    <div class="legend-cell" style="background:var(--border)"></div>
+    <div class="legend-cell" style="background:hsl(120,70%,40%)"></div>
+    <div class="legend-cell" style="background:hsl(80,70%,40%)"></div>
+    <div class="legend-cell" style="background:hsl(40,70%,40%)"></div>
+    <div class="legend-cell" style="background:hsl(0,70%,40%)"></div>
+    <span>More</span>
+  </div>
+</div>
+
+<div id="hm-tooltip">
+  <div class="tt-date" id="tt-date"></div>
+  <div id="tt-body"></div>
+</div>
+
+<script>
+const spendMap = {{ spend_map_json|safe }};
+const tooltip  = document.getElementById('hm-tooltip');
+const ttDate   = document.getElementById('tt-date');
+const ttBody   = document.getElementById('tt-body');
+
+document.querySelectorAll('.heatmap-cell:not(.outside)').forEach(cell => {
+  cell.addEventListener('mouseenter', e => {
+    const ds  = cell.dataset.date;
+    const amt = parseFloat(cell.dataset.amt);
+    const d   = new Date(ds + 'T00:00:00');
+    ttDate.textContent = d.toLocaleDateString('en-IN', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
+    ttBody.innerHTML   = amt > 0
+      ? `<div class="tt-amount">₹${amt.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</div>`
+      : `<div class="tt-none">No expenses</div>`;
+    tooltip.style.display = 'block';
+  });
+  cell.addEventListener('mousemove', e => {
+    tooltip.style.left = (e.clientX + 14) + 'px';
+    tooltip.style.top  = (e.clientY - 40) + 'px';
+  });
+  cell.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+});
+</script>
+{% endblock %}

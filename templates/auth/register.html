@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Register – BudgetTrack{% endblock %}
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-logo"><i class="fa fa-wallet"></i> BudgetTrack</div>
+    <h2>Create account</h2>
+    <p class="auth-sub">Start tracking your expenses today</p>
+    <form method="POST" novalidate>
+      {{ form.hidden_tag() }}
+      <div class="form-group">
+        {{ form.username.label }}
+        {{ form.username(class="form-control", placeholder="johndoe") }}
+        {% for e in form.username.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+      </div>
+      <div class="form-group">
+        {{ form.email.label }}
+        {{ form.email(class="form-control", placeholder="you@example.com") }}
+        {% for e in form.email.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+      </div>
+      <div class="form-group">
+        {{ form.password.label }}
+        {{ form.password(class="form-control", placeholder="Min. 6 characters") }}
+        {% for e in form.password.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+      </div>
+      <div class="form-group">
+        {{ form.confirm.label }}
+        {{ form.confirm(class="form-control", placeholder="Repeat password") }}
+        {% for e in form.confirm.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+    </form>
+    <p class="auth-link">Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a></p>
+  </div>
+</div>
+{% endblock %}

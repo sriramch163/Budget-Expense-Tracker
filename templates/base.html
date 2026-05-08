@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}BudgetTrack{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+{% if current_user.is_authenticated %}
+<!-- Mobile top bar -->
+<div class="mobile-topbar">
+  <button class="hamburger" id="hamburger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="mobile-brand"><i class="fa fa-wallet"></i> BudgetTrack</div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="theme-toggle" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+      <span class="theme-toggle-knob"><i class="fa fa-sun" id="themeIcon"></i></span>
+    </button>
+    <button class="btn btn-primary btn-sm" onclick="openQuickAdd()">
+      <i class="fa fa-plus"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Sidebar overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <i class="fa fa-wallet"></i> Budget<span>Track</span>
+    <button class="sidebar-close" id="sidebarClose" onclick="closeSidebar()"><i class="fa fa-times"></i></button>
+  </div>
+  <p class="nav-section-label">Main Menu</p>
+  <ul class="nav-links">
+    <li><a href="{{ url_for('dashboard.index') }}" class="{{ 'active' if request.endpoint == 'dashboard.index' }}" onclick="closeSidebar()">
+      <i class="fa fa-gauge"></i> Dashboard</a></li>
+    <li><a href="{{ url_for('expenses.index') }}" class="{{ 'active' if request.blueprint == 'expenses' }}" onclick="closeSidebar()">
+      <i class="fa fa-receipt"></i> Expenses</a></li>
+    <li><a href="{{ url_for('categories.index') }}" class="{{ 'active' if request.blueprint == 'categories' }}" onclick="closeSidebar()">
+      <i class="fa fa-tags"></i> Categories</a></li>
+    <li><a href="{{ url_for('budgets.index') }}" class="{{ 'active' if request.blueprint == 'budgets' }}" onclick="closeSidebar()">
+      <i class="fa fa-bullseye"></i> Budgets</a></li>
+    <li><a href="{{ url_for('salary.index') }}" class="{{ 'active' if request.blueprint == 'salary' }}" onclick="closeSidebar()">
+      <i class="fa fa-money-bill-wave"></i> Income</a></li>
+    <li><a href="{{ url_for('goals.index') }}" class="{{ 'active' if request.blueprint == 'goals' }}" onclick="closeSidebar()">
+      <i class="fa fa-bullseye"></i> Savings Goals</a></li>
+    <li><a href="{{ url_for('report.index') }}" class="{{ 'active' if request.endpoint == 'report.index' }}" onclick="closeSidebar()">
+      <i class="fa fa-calendar-alt"></i> Monthly Report</a></li>
+    <li><a href="{{ url_for('report.heatmap') }}" class="{{ 'active' if request.endpoint == 'report.heatmap' }}" onclick="closeSidebar()">
+      <i class="fa fa-fire"></i> Spending Heatmap</a></li>
+  </ul>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar">{{ current_user.username[0].upper() }}</div>
+      <span>{{ current_user.username }}</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+      <a href="{{ url_for('auth.logout') }}" class="logout-btn"><i class="fa fa-sign-out-alt"></i> Sign out</a>
+      <button class="theme-toggle desktop-theme" id="themeToggleDesktop" title="Toggle dark mode" aria-label="Toggle dark mode">
+        <span class="theme-toggle-knob"><i class="fa fa-sun" id="themeIconDesktop"></i></span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main class="main-content" id="mainContent">
+{% endif %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-container">
+      {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }}">
+          <i class="fa fa-{{ 'check-circle' if cat == 'success' else 'exclamation-circle' if cat == 'danger' else 'info-circle' }}"></i>
+          <span>{{ msg }}</span>
+          <button class="close-btn" onclick="this.parentElement.remove()">×</button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+{% block content %}{% endblock %}
+
+{% if current_user.is_authenticated %}
+</main>
+
+<!-- ── Quick-Add Expense Modal ── -->
+<button class="fab" onclick="openQuickAdd()" title="Quick add expense">
+  <i class="fa fa-plus"></i>
+</button>
+
+<div class="modal-backdrop" id="quickAddBackdrop" onclick="closeQuickAdd()"></div>
+<div class="modal" id="quickAddModal">
+  <div class="modal-header">
+    <h3><i class="fa fa-plus-circle" style="color:var(--primary)"></i> Quick Add Expense</h3>
+    <button class="modal-close" onclick="closeQuickAdd()"><i class="fa fa-times"></i></button>
+  </div>
+  <form method="POST" action="{{ url_for('expenses.create') }}" id="quickAddForm">
+    {{ csrf_token_input() }}
+    <input type="hidden" name="date" id="qa-date"/>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Amount (₹)</label>
+          <div style="position:relative">
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-weight:700;color:var(--primary)">₹</span>
+            <input type="number" name="amount" step="0.01" min="0.01" placeholder="0.00"
+                   class="form-control" style="padding-left:28px" required/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" name="date" id="qa-date-input" class="form-control" required/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" name="description" placeholder="What did you spend on?" class="form-control" required maxlength="255"/>
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select name="category_id" class="form-control" required>
+          {% if categories is defined %}
+            {% for c in categories %}
+            <option value="{{ c.id }}">{{ c.name }}</option>
+            {% endfor %}
+          {% endif %}
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="submit" class="btn btn-primary btn-full"><i class="fa fa-save"></i> Save Expense</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

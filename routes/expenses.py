@@ -11,6 +11,26 @@ def populate_category_choices(form):
     cats = Category.query.filter_by(user_id=current_user.id).all()
     form.category_id.choices = [(c.id, c.name) for c in cats]
 
+@expenses_bp.route("/search")
+@login_required
+def search():
+    q = request.args.get("q", "").strip()
+    results = []
+    if q:
+        try:
+            amount = float(q)
+            amount_filter = Expense.amount == amount
+        except ValueError:
+            amount_filter = None
+        base = Expense.query.filter_by(user_id=current_user.id)
+        desc_q = base.filter(Expense.description.ilike(f"%{q}%"))
+        results = desc_q.order_by(Expense.date.desc()).limit(30).all()
+        if amount_filter is not None:
+            amt_results = base.filter(amount_filter).order_by(Expense.date.desc()).limit(10).all()
+            seen = {e.id for e in results}
+            results += [e for e in amt_results if e.id not in seen]
+    return render_template("expenses/search.html", results=results, q=q)
+
 @expenses_bp.route("/")
 @login_required
 def index():
@@ -65,7 +85,13 @@ def create():
         db.session.commit()
         flash("Expense added.", "success")
         return redirect(url_for("expenses.index"))
-    form.date.data = form.date.data or date.today()
+    if request.method == "GET":
+        form.amount.data = request.args.get("amount", type=float) or form.amount.data
+        form.description.data = request.args.get("description") or form.description.data
+        form.category_id.data = request.args.get("category_id", type=int) or form.category_id.data
+        form.is_recurring.data = request.args.get("is_recurring") == "1"
+        form.recurrence_interval.data = request.args.get("recurrence_interval") or form.recurrence_interval.data
+        form.date.data = date.today()
     return render_template("expenses/form.html", form=form, title="Add Expense")
 
 @expenses_bp.route("/<int:id>/edit", methods=["GET", "POST"])
@@ -85,6 +111,18 @@ def edit(id):
         flash("Expense updated.", "success")
         return redirect(url_for("expenses.index"))
     return render_template("expenses/form.html", form=form, title="Edit Expense")
+
+@expenses_bp.route("/<int:id>/duplicate")
+@login_required
+def duplicate(id):
+    e = Expense.query.filter_by(id=id, user_id=current_user.id).first_or_404()
+    return redirect(url_for("expenses.create",
+        amount=e.amount,
+        description=e.description,
+        category_id=e.category_id,
+        is_recurring="1" if e.is_recurring else "0",
+        recurrence_interval=e.recurrence_interval or ""
+    ))
 
 @expenses_bp.route("/<int:id>/delete", methods=["POST"])
 @login_required

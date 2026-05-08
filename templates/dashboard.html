@@ -25,8 +25,12 @@
   </div>
 </div>
 
+<!-- Dashboard widgets (drag to reorder) -->
+<div id="dashboardWidgets">
+
 <!-- Budget alerts -->
 {% if alerts %}
+<div class="dashboard-widget" data-widget-id="alerts">
 <div class="alerts-section">
   {% for a in alerts %}
   <div class="budget-alert {{ 'critical' if a.pct >= 100 else 'warning' }}">
@@ -37,10 +41,12 @@
   </div>
   {% endfor %}
 </div>
+</div>
 {% endif %}
 
 <!-- Smart Insights -->
 {% if insights %}
+<div class="dashboard-widget" data-widget-id="insights">
 <div class="insights-section">
   <div class="insights-header"><i class="fa fa-lightbulb"></i> Smart Insights</div>
   <div class="insights-list">
@@ -52,9 +58,11 @@
     {% endfor %}
   </div>
 </div>
+</div>
 {% endif %}
 
 <!-- Balance hero -->
+<div class="dashboard-widget" data-widget-id="balance">
 <div class="balance-hero">
   <div class="balance-hero-main">
     <div class="balance-hero-label">💳 Available Balance</div>
@@ -87,8 +95,10 @@
     </div>
   </div>
 </div>
+</div>
 
 <!-- Stat cards -->
+<div class="dashboard-widget" data-widget-id="stats">
 <div class="stats-grid">
   <div class="stat-card daily">
     <div class="stat-icon"><i class="fa fa-sun"></i></div>
@@ -115,8 +125,10 @@
     </div>
   </div>
 </div>
+</div>
 
 <!-- Charts row 1 -->
+<div class="dashboard-widget" data-widget-id="charts1">
 <div class="charts-grid">
   <div class="chart-card">
     <div class="chart-card-header">
@@ -145,8 +157,10 @@
     </div>
   </div>
 </div>
+</div>
 
 <!-- Charts row 2: bar -->
+<div class="dashboard-widget" data-widget-id="charts2">
 <div class="chart-card" style="margin-bottom:24px">
   <div class="chart-card-header">
     <h3><i class="fa fa-chart-bar" style="color:var(--primary)"></i> Income vs Expenses — 6 Months</h3>
@@ -157,9 +171,11 @@
   </div>
   <div class="chart-container" style="height:240px"><canvas id="barChart"></canvas></div>
 </div>
+</div>
 
 <!-- Savings Goals mini -->
 {% if goals %}
+<div class="dashboard-widget" data-widget-id="goals">
 <div class="card" style="margin-bottom:24px">
   <div class="card-header">
     <h3><i class="fa fa-bullseye" style="color:var(--primary)"></i> Savings Goals</h3>
@@ -184,9 +200,11 @@
     {% endfor %}
   </div>
 </div>
+</div>
 {% endif %}
 
 <!-- Recent expenses -->
+<div class="dashboard-widget" data-widget-id="recent">
 <div class="card">
   <div class="card-header">
     <h3><i class="fa fa-clock" style="color:var(--primary)"></i> Recent Expenses</h3>
@@ -210,6 +228,9 @@
     </table>
   </div>
 </div>
+</div>
+
+</div><!-- end #dashboardWidgets -->
 
 <script>
 const pieLabels    = {{ chart_labels        | tojson }};
